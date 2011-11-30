@@ -1,0 +1,587 @@
+#!/usr/bin/perl
+
+# NOTE: The following version information is from CVS, and may be
+# out of sync now that this is being maintained on github.
+#
+# $Id: get-versions,v 1.75 2011-08-17 00:32:23 kst Exp $
+# $Source: /home/kst/CVS_smov/bin/get-versions,v $
+
+use strict;
+use warnings;
+
+use File::Spec ();
+use Getopt::Long ();
+use Cwd ();
+
+$SIG{INT} = \&Handler;
+
+my $Program_Name = (File::Spec->splitpath($0))[2];
+my $cwd = Cwd::getcwd();
+chomp $cwd;
+
+my $Opt = { delimiter => ',' };
+my @Opts = ( $Opt, qw( debugging!
+                       rcs!
+                       cvs!
+                       mycvs=s
+                       git!
+                       bynumber!
+                       bytimestamp|bydate!
+                       utc!
+                       raw!
+                       byhash!
+                       hash-length=i
+                       hash8!
+                       follow!
+                       last=i
+                       delimiter=s
+                       infix!
+                       windows!
+                       padding=i
+                       2!
+                       3!
+                       mtime!
+                       trace!
+                       quiet!
+                       help|usage! ) );
+Getopt::Long::GetOptions @Opts or Usage();
+Usage() if $Opt->{help};
+if ($Opt->{2} and not defined $Opt->{padding}) {
+    $Opt->{padding} = 2;
+}
+if ($Opt->{3} and not defined $Opt->{padding}) {
+    $Opt->{padding} = 3;
+}
+if (defined $Opt->{padding} and $Opt->{padding} < 0) {
+    Usage("Padding value must be non-negative\n");
+}
+if (not defined $Opt->{padding}) {
+    $Opt->{padding} = 0;
+}
+if ($Opt->{windows}) {
+    $Opt->{delimiter} = '__';
+    $Opt->{infix} = 1;
+}
+if ($Opt->{hash8}) {
+    $Opt->{padding} = 3;
+    $Opt->{bynumber} = 1;
+    $Opt->{bytimestamp} = 0;
+    $Opt->{byhash} = 1;
+    $Opt->{'hash-length'} = 8;
+}
+
+if (defined $Opt->{last} and $Opt->{last} <= 0) {
+    Usage("Argument to -last must be positive\n");
+}
+if (defined $Opt->{'hash-length'} and $Opt->{'hash-length'} <= 0) {
+    Usage("Argument to -hash-length must be positive\n");
+}
+
+if ($Opt->{utc} and $Opt->{raw}) {
+    Usage("-utc and -raw options are incompatible");
+}
+
+# Fatal "\$cwd ($cwd) not writable\n" if not -w $cwd;
+
+my $Method = undef;
+my %method_requested = ();
+$method_requested{rcs}   = 1 if $Opt->{rcs};
+$method_requested{cvs}   = 1 if $Opt->{cvs};
+$method_requested{mycvs} = 1 if defined $Opt->{mycvs};
+$method_requested{git}   = 1 if $Opt->{git};
+Debug(">>> Methods requested: (", join(' ', keys %method_requested), ")\n");
+if (scalar keys %method_requested == 0) {
+    my @avail = Available_Methods();
+    Debug(">>> \@avail = (@avail)\n");
+    if (scalar @avail == 0) {
+        Usage("No methods available\n");
+    }
+    elsif (scalar @avail == 1) {
+        $Method = $avail[0];
+    }
+    else {
+        Usage("Multiple methods available: @avail\n");
+    }
+}
+elsif (scalar keys %method_requested == 1) {
+    $Method = (keys %method_requested)[0];
+}
+else {
+    Usage("Specify only one of -rcs, -cvs, -mycvs=..., -git\n");
+}
+
+if ($Method eq 'rcs') {
+    $Opt->{mtime} = 1 if not $Opt->{mtime};
+}
+else {
+    if ($Opt->{mtime}) {
+        Usage("-mtime option is currently supported only for RCS\n");
+    }
+}
+
+if ($Method eq 'git') {
+    if (not $Opt->{bynumber} and not $Opt->{bytimestamp} and not $Opt->{byhash}) {
+        $Opt->{bynumber} = 1;
+    }
+}
+
+my $Cmd;
+if    ($Method eq 'rcs')   { $Cmd = 'co' }
+elsif ($Method eq 'cvs')   { $Cmd = 'cvs' }
+elsif ($Method eq 'mycvs') { $Cmd = 'mycvs' }
+elsif ($Method eq 'git')   { $Cmd = 'git' }
+else                       { die "Internal error, \$Method = \"$Method\"" }
+
+my $File_Name = undef;
+my @Revisions = ();
+
+foreach my $arg (@ARGV) {
+    if (not defined $File_Name) {
+        $File_Name = $arg;
+    }
+    else {
+        push @Revisions, Extract_Revisions($arg);
+    }
+}
+Usage("Not enough arguments\n") if not defined $File_Name;
+
+if (scalar @Revisions == 0) {
+    #
+    # If no revisions are specified, get latest revision and append
+    # ",_" to file name.
+    # Examples:
+    #    "get-versions foo 1.5"   creates foo,1.5
+    #    "get-versions foo"       creates foo,_
+    #
+    push @Revisions, undef;
+}
+
+my @extra_args = ("$File_Name,v");
+
+Debug("Looking for $Cmd\n");
+{
+    my $found_it = 0;
+
+    DIR:
+    foreach my $dir ( split /:/, $ENV{PATH }) {
+        if (-x "$dir/$Cmd") {
+            Debug("Found $dir/$Cmd\n");
+            $found_it = 1;
+            last DIR;
+        }
+    }
+    if (not $found_it) {
+        die "$Program_Name: $Cmd command not found in \$PATH\n";
+    }
+}
+
+my $tmp_dir = undef;
+
+if ($Method eq 'rcs') {
+    my $now = time;
+    $tmp_dir = ".get-versions-$now-$$";
+    mkdir $tmp_dir, 0700;
+}
+
+REVISION:
+foreach my $revision (@Revisions) {
+    my $revision_string; # e.g., ",1.42"
+
+    if (defined $revision) {
+        $revision_string = $revision;
+        if (defined $Opt->{padding}) {
+            $revision_string =~ s/(\d+)$/sprintf("%0*d", $Opt->{padding}, $1)/e;
+        }
+    }
+    else {
+        $revision_string = '_';
+    }
+    my $target_file = Target_Name($File_Name, $revision_string);
+
+    if ($Method eq 'rcs') {
+        my @revision_arg;
+        if (defined $revision) {
+            if ($Opt->{mtime}) {
+                @revision_arg = ("-M$revision");
+            }
+            else {
+                @revision_arg = ("-r$revision");
+            }
+        }
+        else {
+            @revision_arg = ();
+        }
+
+        my @command = ('co', @revision_arg, @extra_args, "$tmp_dir/$File_Name");
+        if ($Opt->{trace}) {
+            print "% @command\n";
+        }
+
+        Debug("@command\n");
+        if ($Opt->{quiet}) {
+             open SAVE_STDOUT, ">&STDOUT";
+             open SAVE_STDERR, ">&STDERR";
+             open STDOUT, ">/dev/null";
+             open STDERR, ">/dev/null";
+        }
+        system @command;
+        if ($Opt->{quiet}) {
+             open STDOUT, ">&SAVE_STDOUT";
+             open STDERR, ">&SAVE_STDERR";
+        }
+
+        if ($Opt->{trace}) {
+            print "% rename $tmp_dir/$File_Name, $target_file\n";
+        }
+        rename "$tmp_dir/$File_Name", $target_file;
+    }
+    elsif ($Method =~ /cvs/) {
+        my @cvs_args = qw(update -p);
+        if (defined $revision) {
+            push @cvs_args, '-r', $revision;
+        }
+
+        my @command;
+        if ($Cmd eq 'mycvs') {
+            @command = ($Cmd, $Opt->{mycvs}, @cvs_args,
+                              @extra_args, $File_Name);
+        }
+        else {
+            @command = ($Cmd, @cvs_args, @extra_args, $File_Name);
+        }
+        if ($Opt->{trace}) {
+            print "% @command\n";
+        }
+        Debug("@command\n");
+        if (-e $target_file) {
+            warn ">>> $target_file already exists\n";
+            next REVISION;
+        }
+        open SAVE_STDOUT, ">&STDOUT";
+        open STDOUT, ">$target_file";
+        if ($Opt->{quiet}) {
+            open SAVE_STDERR, ">&STDERR";
+            open STDERR, ">/dev/null";
+        }
+        system @command;
+        open STDOUT, ">&SAVE_STDOUT";
+        if ($Opt->{quiet}) {
+            open STDERR, ">&SAVE_STDERR";
+        }
+        Make_Read_Only($target_file);
+    }
+    elsif ($Method eq 'git') {
+        my @versions = ();
+        my @command = qw(git log --date=raw);
+        push @command, '--follow' if $Opt->{follow};
+        push @command, '--', $File_Name;
+        open my $LOG, '-|', @command or die "git log: $!\n";
+        my $commit = undef;
+        my $timestamp = undef;
+        while (my $line = <$LOG>) {
+            if ($line =~ /^commit\s+(.*)$/) {
+                $commit = $1;
+            }
+            elsif ($line =~ /^Date:\s+(\d+)/) {
+                $timestamp = $1;
+            }
+            elsif ($line =~ /^$/) {
+                if (defined $commit and defined $timestamp) {
+                    unshift @versions, { commit => $commit, timestamp => $timestamp };
+                    undef $commit;
+                    undef $timestamp;
+                }
+            }   
+        }
+        close $LOG;
+        my $num = 0;
+        foreach my $version (@versions) {
+            $version->{num} = ++$num;
+        }
+        if (defined $Opt->{last} and $Opt->{last} < scalar @versions) {
+            splice @versions, 0, scalar @versions - $Opt->{last};
+        }
+        foreach my $version (@versions) {
+            my @parts = ();
+            if ($Opt->{bynumber}) {
+                push @parts, sprintf("%0*d", $Opt->{padding}, $version->{num});
+            }
+            if ($Opt->{bytimestamp}) {
+                push @parts, Time_Image($version->{timestamp});
+            }
+            if ($Opt->{byhash}) {
+                my $hashlen = $Opt->{'hash-length'};
+                if (not defined $hashlen or $hashlen == 0) {
+                    push @parts, $version->{commit};
+                }
+                else {
+                    push @parts, substr($version->{commit}, 0, $hashlen);
+                }
+            }
+            my $target = Target_Name($File_Name, join('-', @parts));
+            my $command = "git show '$version->{commit}:./$File_Name' > '$target'";
+            print "% $command\n";
+            my $result = system $command;
+            my $target_exists = 1;
+            if ($result != 0) {
+                warn sprintf "git show failed, system() returned 0x%x\n", $result;
+                if (-z $target) {
+                    unlink $target;
+                    $target_exists = 0;
+                }
+                else {
+                    warn "File $target is not empty (?)\n";
+                }
+            }
+            if ($target_exists) {
+                Make_Read_Only($target);
+            }
+        }
+    }
+    else {
+        die "Internal error, \$Method = \"$Method\"\n";
+    }
+
+}
+
+Cleanup();
+
+########################################################################
+
+sub Debug {
+    print @_ if $Opt->{debugging};
+} # Debug
+
+# ----------------------------------------------------------------------
+
+sub Handler {
+    my($signal) = @_;
+    Fatal("interrupted by SIG$signal\n");
+} # Handler
+
+# ----------------------------------------------------------------------
+
+sub Fatal {
+    #
+    # Probably a __DIE__ handler would be better for this.
+    #
+    print STDERR "$Program_Name: ", @_;
+    Cleanup();
+    exit 1;
+} # Fatal
+
+# ----------------------------------------------------------------------
+
+sub Cleanup {
+    if (defined $tmp_dir) {
+        rmdir $tmp_dir if -d $tmp_dir;
+        system qw(rm -rf), $tmp_dir if -d $tmp_dir;
+    }
+} # Cleanup
+
+# ----------------------------------------------------------------------
+
+sub Extract_Revisions {
+    my($arg) = @_;
+    my $first_rev = undef;
+    my $last_rev  = undef;
+    my $is_range  = undef;
+
+    if ($arg =~ /^([\d.]+)-([\d.]+)$/) {
+        ($first_rev, $last_rev) = ($1, $2);
+        $is_range = 1;
+    }
+    elsif ($arg =~ /^([\d.]+)-$/) {
+        $first_rev = $1;
+        $last_rev = Head_Revision($File_Name);
+        $is_range = 1;
+    }
+    else {
+        $first_rev = $arg;
+        $is_range = 0;
+    }
+
+    if ($is_range) {
+        foreach my $rev ($first_rev, $last_rev) {
+            if (defined $rev and $rev !~ /^\d+(\.\d+)*$/) {
+                Usage("Invalid revision: $rev\n");
+            }
+        }
+    }
+
+    if (not $is_range) {
+        return ( $first_rev ); # parentheses are intentional
+    }
+
+    my ($first_head, $first_tail) = ($first_rev =~ /^(.+)\.(\d+)$/);
+    my ($last_head,  $last_tail)  = ($last_rev  =~ /^(.+)\.(\d+)$/);
+
+    if ($first_head ne $last_head or $first_tail > $last_tail) {
+        Usage("Invalid revision range: $arg\n");
+    }
+
+    my @result = ();
+    for (my $i = $first_tail; $i <= $last_tail; $i ++) {
+        push @result, "$first_head.$i";
+    }
+
+    return @result;
+} # Extract_Revisions
+
+# ----------------------------------------------------------------------
+
+sub Head_Revision {
+    my($file) = @_;
+    my @command;
+
+    if    ($Method eq 'rcs')   { @command = qw(rlog -h) }
+    elsif ($Method eq 'cvs')   { @command = qw(cvs log -h) }
+    elsif ($Method eq 'mycvs') { @command = qw(mycvs $Opt->{mycvs} log -h) }
+    else                       { die "Internal error" }
+
+    open my $PIPE, '-|', @command, $file;
+    while (<$PIPE>) {
+        if (/^head: (\d+(\.\d+)*)/) {
+            close $PIPE;
+            return $1;
+        }
+    }
+    close $PIPE;
+    die "Can't determine head revision for $file\n";
+} # Head_Revision
+
+# ----------------------------------------------------------------------
+
+#
+# Given a file name and a version string, returns the target file name
+# For example, Target_Name("foo.txt", "1.1") might return either
+# "foo.txt,1.1" or "foo__1.1.txt", depending on the command-line options.
+#
+sub Target_Name {
+    my($name, $version) = @_;
+    if ($Opt->{infix}) {
+        my($prefix, $suffix);
+        if ($name =~ /^(.+)(\..+)$/) {
+            ($prefix, $suffix) = ($1, $2);
+        }
+        else {
+            ($prefix, $suffix) = ($name, '');
+        }
+        return $prefix . $Opt->{delimiter} . $version . $suffix;
+    }
+    else {
+        return $name . $Opt->{delimiter} . $version;
+    }
+} # Target_Name
+
+# ----------------------------------------------------------------------
+
+sub Available_Methods {
+    my @result = ();
+    push @result, 'rcs' if -d 'RCS';
+    push @result, 'cvs' if -d 'CVS';
+    my $dir = $cwd;
+    if ($cwd !~ m|^/|) {
+        die "\$cwd is not absolute: \"$cwd\"\n";
+    }
+    while ($dir ne '') {
+        Debug(">>> Checking $dir/.git\n");
+        if (-d "$dir/.git") {
+            push @result, 'git';
+            last;
+        }
+        $dir =~ s|/[^/]*$||;
+    }
+    return @result;
+} # Available_Methods 
+
+# ----------------------------------------------------------------------
+
+sub Make_Read_Only {
+    my($file) = @_;
+    my @stat = stat $file;
+    if (not @stat) {
+        warn "stat $file: $!\n";
+        return;
+    }
+    my $perms = $stat[2];
+    $perms &= ~0222;
+    chmod $perms, $file or warn "chmod $file: $!\n";
+} # Make_Read_Only 
+
+# ----------------------------------------------------------------------
+
+sub Time_Image {
+    my($time) = @_;
+    if ($Opt->{raw}) {
+        return $time;
+    }
+    else {
+        my($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
+            = ($Opt->{utc} ? gmtime $time : localtime $time);
+        return sprintf "%04d-%02d-%02d-%02d%02d%02d",
+                       1900+$year, 1+$mon, $mday, $hour, $min, $sec;
+    }
+} # Time_Image
+
+# ----------------------------------------------------------------------
+
+sub Usage {
+    print <<"EOF";
+@{_}$Program_Name:    get each specified revisions of a file from RCS or CVS
+Usage: $Program_Name [options] file [revision...]
+Option names may be abbreviated uniquely
+Options:
+    -help, usage Display this message and exit
+    -rcs         Use RCS (default if there's an RCS directory)
+    -cvs         Use CVS (default if there's a CVS directory
+    -mycvs=ident Use mycvs (mycvs -help for more information)
+    -git         Use Git (default if there's a .git directory
+                 in the current directory or any parent)
+    NOTE: If more than one default is available, the method must be specified
+    -bynumber    Git only: assign numbers starting at 0 to use as the version
+                 This is the default
+                 Affected by "-padding"
+    -bytimestamp Git only: use the timestamp as the version
+    -bydate      Alias for -bytimestamp
+    -utc         With -bytimestamp, use UTC
+    -raw         With -bytimestamp, use raw Unix time
+    -byhash      Git only: use the hash as the version
+                 More than one of the -by* options can be given if you
+                 like very long file names.
+    -hash-length n  With "-byhash", use only the first n characters of the hash
+    -hash8       Equivalent to -padding 3 -bynumber -byhash -hash-length 8
+    -follow      Git only: Pass "--follow" option to "git log".
+                 This doesn't currently work.
+    -last n      Get only last n versions (git only for now)
+    -delimiter s Use the specified delimiter; default is ","
+    -infix       Place the version number before the file suffix,
+                 e.g., "foo,1.23.jpg" rather than "foo.jpg,1.23".
+    -windows     Use options appropriate for Windows:
+                     -infix -delimiter __ 
+    -padding n   Pad last field of revision to n digits; default is 0.
+    -2           Equivalent to "-padding 2"
+    -3           Equivalent to "-padding 3"
+    -mtime       Set modification time of file to the date of the
+                 retrieved revision.  Currently supported only for RCS.
+                 Default is true for RCS, false for CVS.
+    -quiet       Send RCS/CVS messages to /dev/null
+    -trace       Show each command before executing it
+    -debugging   Lotsa debugging output (not recommended)
+Each revision argument may specify either a single revision (numeric
+or symbolic), a range of numeric revisions separated by a '-', or
+a numeric revision followed by a '-' (indicating a range from the
+specified revision to the head (latest) revision).
+
+Example: $Program_Name -2 .cshrc 1.5-1.7 1.10
+         creates the following files in the current directory:
+            .cshrc,1.05
+            .cshrc,1.06
+            .cshrc,1.07
+            .cshrc,1.10
+Example: $Program_Name -infix -delim __ 1.7 foo.dat
+         creates the following file:
+            foo__1.7.dat
+EOF
+    exit 1;
+} # Usage
