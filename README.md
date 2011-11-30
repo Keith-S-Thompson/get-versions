@@ -3,7 +3,7 @@ versions of a file stored in an RCS, CVS, or git repository.  It has
 a number of options (perhaps too many!) to control which versions
 to fetch, how to name the resulting files, and so forth.
 
-It does not currently support other source control systems (because
+It does not currently support other version control systems (because
 RCS, CVS, and git are the ones I've used myself).  I'll consider
 adding support for other systems in the future.
 
@@ -46,7 +46,7 @@ sequential versions, starting at 1, to all the revisions shown by the
 this sequential version number, the (possibly abbreviated) hash,
 and the timestamp.
 
-Some command-line options are specfic to certain source control
+Some command-line options are specfic to certain version control
 systems.  This is not always enforce; in some cases, meaningless
 options are treated as errors, and in other cases they're silently
 ignored.
