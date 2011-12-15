@@ -3,7 +3,7 @@
 # NOTE: The following version information is from CVS, and may be
 # out of sync now that this is being maintained on github.
 #
-# $Id: get-versions,v 1.75 2011-08-17 00:32:23 kst Exp $
+# $Id: get-versions,v 1.76 2011-12-15 22:11:53 kst Exp $
 # $Source: /home/kst/CVS_smov/bin/get-versions,v $
 
 use strict;
@@ -275,6 +275,9 @@ foreach my $revision (@Revisions) {
         my @command = qw(git log --date=raw);
         push @command, '--follow' if $Opt->{follow};
         push @command, '--', $File_Name;
+        if ($Opt->{trace}) {
+            print "% @command\n";
+        }
         open my $LOG, '-|', @command or die "git log: $!\n";
         my $commit = undef;
         my $timestamp = undef;
@@ -285,13 +288,11 @@ foreach my $revision (@Revisions) {
             elsif ($line =~ /^Date:\s+(\d+)/) {
                 $timestamp = $1;
             }
-            elsif ($line =~ /^$/) {
-                if (defined $commit and defined $timestamp) {
-                    unshift @versions, { commit => $commit, timestamp => $timestamp };
-                    undef $commit;
-                    undef $timestamp;
-                }
-            }   
+            if (defined $commit and defined $timestamp) {
+                unshift @versions, { commit => $commit, timestamp => $timestamp };
+                undef $commit;
+                undef $timestamp;
+            }
         }
         close $LOG;
         my $num = 0;
@@ -320,7 +321,9 @@ foreach my $revision (@Revisions) {
             }
             my $target = Target_Name($File_Name, join('-', @parts));
             my $command = "git show '$version->{commit}:./$File_Name' > '$target'";
-            print "% $command\n";
+            if ($Opt->{trace}) {
+                print "% $command\n";
+            }
             my $result = system $command;
             my $target_exists = 1;
             if ($result != 0) {
