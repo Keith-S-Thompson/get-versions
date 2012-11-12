@@ -565,13 +565,13 @@ or symbolic), a range of numeric revisions separated by a '-' or '..', or
 a numeric revision followed by a '-' or '..' (indicating a range from the
 specified revision to the head (latest) revision).
 
-Example: $Program_Name -2 .cshrc 1.5-1.7 1.10
-         $Program_Name -2 .cshrc 1.5..1.7 1.10
+Example: $Program_Name -2 .bashrc 1.5-1.7 1.10
+         $Program_Name -2 .bashrc 1.5..1.7 1.10
          creates the following files in the current directory:
-            .cshrc,1.05
-            .cshrc,1.06
-            .cshrc,1.07
-            .cshrc,1.10
+            .bashrc,1.05
+            .bashrc,1.06
+            .bashrc,1.07
+            .bashrc,1.10
 Example: $Program_Name -infix -delim __ 1.7 foo.dat
          creates the following file:
             foo__1.7.dat

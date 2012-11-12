@@ -19,7 +19,8 @@ will create the following files
     foo.txt,1.4
     foo.txt,1.5
 
-That's not very friendly for Windows systems, so this command:
+That's not very friendly for Windows systems, which depend on the
+file extension to identify file types, so this command:
 
     get-versions -windows foo.txt 1.3-1.5
 
@@ -44,13 +45,13 @@ this sequential version number, the (possibly abbreviated) hash,
 and the timestamp.
 
 Some command-line options are specfic to certain version control
-systems.  This is not always enforce; in some cases, meaningless
+systems.  This is not always enforced; in some cases, meaningless
 options are treated as errors, and in other cases they're silently
 ignored.
 
 I've been developing this tool for my own personal use since 1991.
-I might later add the full revision history; for now, I'm just adding
-the current version.
+I might later add the full revision history to this GitHub project; for
+now, I'm just adding the current version and developing it from there.
 
 Run `get-versions -help` to see a usage message:
 
@@ -97,26 +98,16 @@ Run `get-versions -help` to see a usage message:
     or symbolic), a range of numeric revisions separated by a '-' or '..', or
     a numeric revision followed by a '-' or '..' (indicating a range from the
     specified revision to the head (latest) revision).
-
-Example: get-versions -2 .cshrc 1.5-1.7 1.10
-         get-versions -2 .cshrc 1.5..1.7 1.10
-         creates the following files in the current directory:
-            .cshrc,1.05
-            .cshrc,1.06
-            .cshrc,1.07
-            .cshrc,1.10
-Example: get-versions -infix -delim __ 1.7 foo.dat
-         creates the following file:
-            foo__1.7.dat
-
-    Example: get-versions -2 .cshrc 1.5-1.7 1.10
+    
+    Example: get-versions -2 .bashrc 1.5-1.7 1.10
+             get-versions -2 .bashrc 1.5..1.7 1.10
              creates the following files in the current directory:
-                .cshrc,1.05
-                .cshrc,1.06
-                .cshrc,1.07
-                .cshrc,1.10
+                .bashrc,1.05
+                .bashrc,1.06
+                .bashrc,1.07
+                .bashrc,1.10
     Example: get-versions -infix -delim __ 1.7 foo.dat
              creates the following file:
                 foo__1.7.dat
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Wed 2011-11-30
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Mon 2012-11-12
