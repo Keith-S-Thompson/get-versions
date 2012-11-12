@@ -23,7 +23,6 @@ my $Opt = { delimiter => ',' };
 my @Opts = ( $Opt, qw( debugging!
                        rcs!
                        cvs!
-                       mycvs=s
                        git!
                        bynumber!
                        bytimestamp|bydate!
@@ -87,7 +86,6 @@ my $Method = undef;
 my %method_requested = ();
 $method_requested{rcs}   = 1 if $Opt->{rcs};
 $method_requested{cvs}   = 1 if $Opt->{cvs};
-$method_requested{mycvs} = 1 if defined $Opt->{mycvs};
 $method_requested{git}   = 1 if $Opt->{git};
 Debug(">>> Methods requested: (", join(' ', keys %method_requested), ")\n");
 if (scalar keys %method_requested == 0) {
@@ -107,7 +105,7 @@ elsif (scalar keys %method_requested == 1) {
     $Method = (keys %method_requested)[0];
 }
 else {
-    Usage("Specify only one of -rcs, -cvs, -mycvs=..., -git\n");
+    Usage("Specify only one of -rcs, -cvs, -git\n");
 }
 
 if ($Method eq 'rcs') {
@@ -128,7 +126,6 @@ if ($Method eq 'git') {
 my $Cmd;
 if    ($Method eq 'rcs')   { $Cmd = 'co' }
 elsif ($Method eq 'cvs')   { $Cmd = 'cvs' }
-elsif ($Method eq 'mycvs') { $Cmd = 'mycvs' }
 elsif ($Method eq 'git')   { $Cmd = 'git' }
 else                       { die "Internal error, \$Method = \"$Method\"" }
 
@@ -241,14 +238,7 @@ foreach my $revision (@Revisions) {
             push @cvs_args, '-r', $revision;
         }
 
-        my @command;
-        if ($Cmd eq 'mycvs') {
-            @command = ($Cmd, $Opt->{mycvs}, @cvs_args,
-                              @extra_args, $File_Name);
-        }
-        else {
-            @command = ($Cmd, @cvs_args, @extra_args, $File_Name);
-        }
+        my @command = ($Cmd, @cvs_args, @extra_args, $File_Name);
         if ($Opt->{trace}) {
             print "% @command\n";
         }
@@ -438,10 +428,9 @@ sub Head_Revision {
     my($file) = @_;
     my @command;
 
-    if    ($Method eq 'rcs')   { @command = qw(rlog -h) }
-    elsif ($Method eq 'cvs')   { @command = qw(cvs log -h) }
-    elsif ($Method eq 'mycvs') { @command = qw(mycvs $Opt->{mycvs} log -h) }
-    else                       { die "Internal error" }
+    if    ($Method eq 'rcs') { @command = qw(rlog -h) }
+    elsif ($Method eq 'cvs') { @command = qw(cvs log -h) }
+    else                     { die "Internal error" }
 
     open my $PIPE, '-|', @command, $file;
     while (<$PIPE>) {
@@ -539,7 +528,6 @@ Options:
     -help, usage Display this message and exit
     -rcs         Use RCS (default if there's an RCS directory)
     -cvs         Use CVS (default if there's a CVS directory
-    -mycvs=ident Use mycvs (mycvs -help for more information)
     -git         Use Git (default if there's a .git directory
                  in the current directory or any parent)
     NOTE: If more than one default is available, the method must be specified

@@ -7,9 +7,6 @@ It does not currently support other version control systems (because
 RCS, CVS, and git are the ones I've used myself).  I'll consider
 adding support for other systems in the future.
 
-The "-mycvs=..." option uses a wrapper script I wrote for CVS systems.
-I haven't released "mycvs", so you can just ignore that option.
-
 By default, `get-versions` uses a comma to separate the file name from
 the version number.  For example, if you're in a CVS directory tree,
 this command:
@@ -64,7 +61,6 @@ Run `get-versions -help` to see a usage message:
         -help, usage Display this message and exit
         -rcs         Use RCS (default if there's an RCS directory)
         -cvs         Use CVS (default if there's a CVS directory
-        -mycvs=ident Use mycvs (mycvs -help for more information)
         -git         Use Git (default if there's a .git directory
                      in the current directory or any parent)
         NOTE: If more than one default is available, the method must be specified
