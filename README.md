@@ -98,9 +98,20 @@ Run `get-versions -help` to see a usage message:
         -trace       Show each command before executing it
         -debugging   Lotsa debugging output (not recommended)
     Each revision argument may specify either a single revision (numeric
-    or symbolic), a range of numeric revisions separated by a '-', or
-    a numeric revision followed by a '-' (indicating a range from the
+    or symbolic), a range of numeric revisions separated by a '-' or '..', or
+    a numeric revision followed by a '-' or '..' (indicating a range from the
     specified revision to the head (latest) revision).
+
+Example: get-versions -2 .cshrc 1.5-1.7 1.10
+         get-versions -2 .cshrc 1.5..1.7 1.10
+         creates the following files in the current directory:
+            .cshrc,1.05
+            .cshrc,1.06
+            .cshrc,1.07
+            .cshrc,1.10
+Example: get-versions -infix -delim __ 1.7 foo.dat
+         creates the following file:
+            foo__1.7.dat
 
     Example: get-versions -2 .cshrc 1.5-1.7 1.10
              creates the following files in the current directory:

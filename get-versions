@@ -389,12 +389,13 @@ sub Extract_Revisions {
     my $first_rev = undef;
     my $last_rev  = undef;
     my $is_range  = undef;
+    my $range_sep = qr/(?:-|\.\.)/;
 
-    if ($arg =~ /^([\d.]+)-([\d.]+)$/) {
+    if ($arg =~ /^([\d.]+)$range_sep([\d.]+)$/) {
         ($first_rev, $last_rev) = ($1, $2);
         $is_range = 1;
     }
-    elsif ($arg =~ /^([\d.]+)-$/) {
+    elsif ($arg =~ /^([\d.]+)$range_sep$/) {
         $first_rev = $1;
         $last_rev = Head_Revision($File_Name);
         $is_range = 1;
@@ -572,11 +573,12 @@ Options:
     -trace       Show each command before executing it
     -debugging   Lotsa debugging output (not recommended)
 Each revision argument may specify either a single revision (numeric
-or symbolic), a range of numeric revisions separated by a '-', or
-a numeric revision followed by a '-' (indicating a range from the
+or symbolic), a range of numeric revisions separated by a '-' or '..', or
+a numeric revision followed by a '-' or '..' (indicating a range from the
 specified revision to the head (latest) revision).
 
 Example: $Program_Name -2 .cshrc 1.5-1.7 1.10
+         $Program_Name -2 .cshrc 1.5..1.7 1.10
          creates the following files in the current directory:
             .cshrc,1.05
             .cshrc,1.06
