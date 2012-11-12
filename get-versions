@@ -1,10 +1,7 @@
 #!/usr/bin/perl
 
-# NOTE: The following version information is from CVS, and may be
-# out of sync now that this is being maintained on github.
-#
-# $Id: get-versions,v 1.76 2011-12-15 22:11:53 kst Exp $
-# $Source: /home/kst/CVS_smov/bin/get-versions,v $
+# $Id$
+# $Source$
 
 use strict;
 use warnings;
@@ -491,15 +488,15 @@ sub Available_Methods {
 # ----------------------------------------------------------------------
 
 sub Make_Read_Only {
-    my($file) = @_;
-    my @stat = stat $file;
+    my($file_name) = @_;
+    my @stat = stat $file_name;
     if (not @stat) {
-        warn "stat $file: $!\n";
+        warn "stat $file_name: $!\n";
         return;
     }
     my $perms = $stat[2];
     $perms &= ~0222;
-    chmod $perms, $file or warn "chmod $file: $!\n";
+    chmod $perms, $file_name or warn "chmod $file_name: $!\n";
 } # Make_Read_Only 
 
 # ----------------------------------------------------------------------
