@@ -1,17 +1,24 @@
-get-versions is a command-line utility that will fetch multiple
-versions of a file stored in an RCS, CVS, or git repository.  It has
-a number of options (perhaps too many!) to control which versions
-to fetch, how to name the resulting files, and so forth.
+`get-versions` is a command-line utility that will fetch multiple
+versions of a file stored in an
+[RCS](http://www.gnu.org/software/rcs/),
+[CVS](http://www.nongnu.org/cvs/),
+[SVN (Subversion)](http://subversion.apache.org/), or
+[Git](http://git-scm.com/)
+repository. It has a number of options (perhaps too many!) to control
+which versions to fetch, how to name the resulting files, and so forth.
 
-It does not currently support other version control systems (because
-RCS, CVS, and git are the ones I've used myself).  I'll consider
-adding support for other systems in the future.
+It does not currently support other version control systems.
+I'll consider adding support for other systems in the future.
 
 By default, `get-versions` uses a comma to separate the file name from
 the version number.  For example, if you're in a CVS directory tree,
 this command:
 
     get-versions foo.txt 1.3-1.5
+
+or
+
+    get-versions foo.txt 1.3..1.5
 
 will create the following files
 
@@ -37,6 +44,11 @@ will create the following files:
 maintaining the `.txt` suffix and avoiding the use of the comma
 delimiter.
 
+For SVN, version numbers are integers with no decimal points,
+incremented for each commit to the repository.  Versions that don't
+apply to the current file are skipped; for example, a given file
+might have revisions 1, 2, 5, and 7.
+
 Since git doesn't assign version numbers to individual files,
 the behavior for git is a bit different.  It arbitrarily assigns
 sequential versions, starting at 1, to all the revisions shown by the
@@ -55,14 +67,16 @@ now, I'm just adding the current version and developing it from there.
 
 Run `get-versions -help` to see a usage message:
 
-    get-versions:    get each specified revisions of a file from RCS or CVS
+    get-versions: get specified revisions of a file from a version control system
+    Currently supported systems are RCS, CVS, SVN, and Git
     Usage: get-versions [options] file [revision...]
     Option names may be abbreviated uniquely
     Options:
         -help, usage Display this message and exit
         -rcs         Use RCS (default if there's an RCS directory)
-        -cvs         Use CVS (default if there's a CVS directory
-        -git         Use Git (default if there's a .git directory
+        -cvs         Use CVS (default if there's a CVS directory)
+        -svn         Use SVN (default if there's a .svn directory)
+        -git         Use Git (default if there's a .git directory)
                      in the current directory or any parent)
         NOTE: If more than one default is available, the method must be specified
         -bynumber    Git only: assign numbers starting at 0 to use as the version
@@ -98,8 +112,16 @@ Run `get-versions -help` to see a usage message:
     or symbolic), a range of numeric revisions separated by a '-' or '..', or
     a numeric revision followed by a '-' or '..' (indicating a range from the
     specified revision to the head (latest) revision).
-    
-    Example: get-versions -2 .bashrc 1.5-1.7 1.10
+
+    RCS and CVS revisions are sequences of decimal integers separated by
+    '.', for example "1.42".  In the absence of branches, "1.1-" denotes
+    the complete history.
+    SVN revisions are decimal integers.  Any revisions that do not apply to
+    a particular file are skipped. "1-" denotes the complete history.
+    Git revisions are 40-digit hexadecimal SHA-1 hashes.  This program
+    can use hashes, dates, or small integers to denote versions.
+
+    Example: get-versions -2 .bashrc 1.5-1.7 1.10          # CVS
              get-versions -2 .bashrc 1.5..1.7 1.10
              creates the following files in the current directory:
                 .bashrc,1.05
