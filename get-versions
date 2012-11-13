@@ -642,7 +642,15 @@ or symbolic), a range of numeric revisions separated by a '-' or '..', or
 a numeric revision followed by a '-' or '..' (indicating a range from the
 specified revision to the head (latest) revision).
 
-Example: $Program_Name -2 .bashrc 1.5-1.7 1.10
+RCS and CVS revisions are sequences of decimal integers separated by
+'.', for example "1.42".  In the absence of branches, "1.1-" denotes
+the complete history.
+SVN revisions are decimal integers.  Any revisions that do not apply to
+a particular file are skipped. "1-" denotes the complete history.
+Git revisions are 40-digit hexadecimal SHA-1 hashes.  This program
+can use hashes, dates, or small integers to denote versions.
+
+Example: $Program_Name -2 .bashrc 1.5-1.7 1.10          # CVS
          $Program_Name -2 .bashrc 1.5..1.7 1.10
          creates the following files in the current directory:
             .bashrc,1.05
