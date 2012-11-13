@@ -20,6 +20,7 @@ my $Opt = { delimiter => ',' };
 my @Opts = ( $Opt, qw( debugging!
                        rcs!
                        cvs!
+                       svn!
                        git!
                        bynumber!
                        bytimestamp|bydate!
@@ -81,9 +82,10 @@ if ($Opt->{utc} and $Opt->{raw}) {
 
 my $Method = undef;
 my %method_requested = ();
-$method_requested{rcs}   = 1 if $Opt->{rcs};
-$method_requested{cvs}   = 1 if $Opt->{cvs};
-$method_requested{git}   = 1 if $Opt->{git};
+$method_requested{rcs} = 1 if $Opt->{rcs};
+$method_requested{cvs} = 1 if $Opt->{cvs};
+$method_requested{svn} = 1 if $Opt->{svn};
+$method_requested{git} = 1 if $Opt->{git};
 Debug(">>> Methods requested: (", join(' ', keys %method_requested), ")\n");
 if (scalar keys %method_requested == 0) {
     my @avail = Available_Methods();
@@ -102,7 +104,7 @@ elsif (scalar keys %method_requested == 1) {
     $Method = (keys %method_requested)[0];
 }
 else {
-    Usage("Specify only one of -rcs, -cvs, -git\n");
+    Usage("Specify only one of -rcs, -cvs, -svn, -git\n");
 }
 
 if ($Method eq 'rcs') {
@@ -123,6 +125,7 @@ if ($Method eq 'git') {
 my $Cmd;
 if    ($Method eq 'rcs')   { $Cmd = 'co' }
 elsif ($Method eq 'cvs')   { $Cmd = 'cvs' }
+elsif ($Method eq 'svn')   { $Cmd = 'svn' }
 elsif ($Method eq 'git')   { $Cmd = 'git' }
 else                       { die "Internal error, \$Method = \"$Method\"" }
 
@@ -134,7 +137,7 @@ foreach my $arg (@ARGV) {
         $File_Name = $arg;
     }
     else {
-        push @Revisions, Extract_Revisions($arg);
+        push @Revisions, Extract_Revisions($arg, $File_Name);
     }
 }
 Usage("Not enough arguments\n") if not defined $File_Name;
@@ -229,13 +232,42 @@ foreach my $revision (@Revisions) {
         }
         rename "$tmp_dir/$File_Name", $target_file;
     }
-    elsif ($Method =~ /cvs/) {
+    elsif ($Method eq 'cvs') {
         my @cvs_args = qw(update -p);
         if (defined $revision) {
             push @cvs_args, '-r', $revision;
         }
 
         my @command = ($Cmd, @cvs_args, @extra_args, $File_Name);
+        if ($Opt->{trace}) {
+            print "% @command\n";
+        }
+        Debug("@command\n");
+        if (-e $target_file) {
+            warn ">>> $target_file already exists\n";
+            next REVISION;
+        }
+        open SAVE_STDOUT, ">&STDOUT";
+        open STDOUT, ">$target_file";
+        if ($Opt->{quiet}) {
+            open SAVE_STDERR, ">&STDERR";
+            open STDERR, ">/dev/null";
+        }
+        system @command;
+        open STDOUT, ">&SAVE_STDOUT";
+        if ($Opt->{quiet}) {
+            open STDERR, ">&SAVE_STDERR";
+        }
+        Make_Read_Only($target_file);
+    }
+    elsif ($Method eq 'svn') {
+        my @command = ($Cmd, 'cat');
+        if (defined $revision) {
+            push @command, "$File_Name\@$revision";
+        }
+        else {
+            push @command, $File_Name;
+        }
         if ($Opt->{trace}) {
             print "% @command\n";
         }
@@ -372,7 +404,7 @@ sub Cleanup {
 # ----------------------------------------------------------------------
 
 sub Extract_Revisions {
-    my($arg) = @_;
+    my($arg, $filename) = @_;
     my $first_rev = undef;
     my $last_rev  = undef;
     my $is_range  = undef;
@@ -394,7 +426,9 @@ sub Extract_Revisions {
 
     if ($is_range) {
         foreach my $rev ($first_rev, $last_rev) {
-            if (defined $rev and $rev !~ /^\d+(\.\d+)*$/) {
+            my $rev_pattern = ($Method eq 'svn' ? qr/^\d+$/
+                                                : qr/^\d+(\.\d+)*$/);
+            if (defined $rev and $rev !~ $rev_pattern) {
                 Usage("Invalid revision: $rev\n");
             }
         }
@@ -404,16 +438,31 @@ sub Extract_Revisions {
         return ( $first_rev ); # parentheses are intentional
     }
 
-    my ($first_head, $first_tail) = ($first_rev =~ /^(.+)\.(\d+)$/);
-    my ($last_head,  $last_tail)  = ($last_rev  =~ /^(.+)\.(\d+)$/);
-
-    if ($first_head ne $last_head or $first_tail > $last_tail) {
-        Usage("Invalid revision range: $arg\n");
-    }
-
+    #
+    # For RCS and CVS, get all revisions in the numeric range, ignoring
+    # the file name argument.
+    # For SVN, get only revisions that appear in the log (the sequence
+    # is often non-contiguous).
+    # For Git, this function is not used.
+    #
     my @result = ();
-    for (my $i = $first_tail; $i <= $last_tail; $i ++) {
-        push @result, "$first_head.$i";
+    if ($Method eq 'svn') {
+        my @all_revisions = SVN_Revisions($filename);
+        foreach my $rev (@all_revisions) {
+            push @result, $rev if $rev >= $first_rev and $rev <= $last_rev;
+        }
+    }
+    else {
+        my ($first_head, $first_tail) = ($first_rev =~ /^(.+)\.(\d+)$/);
+        my ($last_head,  $last_tail)  = ($last_rev  =~ /^(.+)\.(\d+)$/);
+
+        if ($first_head ne $last_head or $first_tail > $last_tail) {
+            Usage("Invalid revision range: $arg\n");
+        }
+
+        for (my $i = $first_tail; $i <= $last_tail; $i ++) {
+            push @result, "$first_head.$i";
+        }
     }
 
     return @result;
@@ -427,18 +476,46 @@ sub Head_Revision {
 
     if    ($Method eq 'rcs') { @command = qw(rlog -h) }
     elsif ($Method eq 'cvs') { @command = qw(cvs log -h) }
+    elsif ($Method eq 'svn') { @command = qw(svn log -r COMMITTED) }
     else                     { die "Internal error" }
 
+    my $pattern = ($Method eq 'svn' ? qr/^r(\d+)/
+                                    : qr/^head: (\d+(\.\d+)*)/);
+    Debug("Opening pipe: @command $file\n");
     open my $PIPE, '-|', @command, $file;
     while (<$PIPE>) {
-        if (/^head: (\d+(\.\d+)*)/) {
+        if (/$pattern/) {
+            my $result = $1;
+            while(<$PIPE>) {
+                # Drain the pipe
+            }
+            Debug("Closing pipe early: @command $file\n");
             close $PIPE;
-            return $1;
+            Debug("Head_Revision(\"$file\") = $1\n");
+            return $result
         }
     }
+    Debug("Closing pipe: @command $file\n");
     close $PIPE;
     die "Can't determine head revision for $file\n";
 } # Head_Revision
+
+# ----------------------------------------------------------------------
+
+sub SVN_Revisions {
+    my($filename) = @_;
+    my @revisions = ();
+    open my $LOG, '-|', qw(svn log -q), $filename
+        or die "svn log -q $filename: $!\n";
+    while (<$LOG>) {
+        if (/^r(\d+)/) {
+            unshift @revisions, $1;
+        }
+    }
+    close $LOG;
+    Debug("SVN_Revisions(\"$filename\") = ( @revisions )\n");
+    return @revisions;
+} # SVN_Revisions 
 
 # ----------------------------------------------------------------------
 
@@ -470,6 +547,7 @@ sub Available_Methods {
     my @result = ();
     push @result, 'rcs' if -d 'RCS';
     push @result, 'cvs' if -d 'CVS';
+    push @result, 'svn' if -d '.svn';
     my $dir = $cwd;
     if ($cwd !~ m|^/|) {
         die "\$cwd is not absolute: \"$cwd\"\n";
@@ -518,14 +596,16 @@ sub Time_Image {
 
 sub Usage {
     print <<"EOF";
-@{_}$Program_Name:    get each specified revisions of a file from RCS or CVS
+@{_}$Program_Name: get specified revisions of a file from a version control system
+Currently supported systems are RCS, CVS, SVN, and Git
 Usage: $Program_Name [options] file [revision...]
 Option names may be abbreviated uniquely
 Options:
     -help, usage Display this message and exit
     -rcs         Use RCS (default if there's an RCS directory)
-    -cvs         Use CVS (default if there's a CVS directory
-    -git         Use Git (default if there's a .git directory
+    -cvs         Use CVS (default if there's a CVS directory)
+    -svn         Use SVN (default if there's a .svn directory)
+    -git         Use Git (default if there's a .git directory)
                  in the current directory or any parent)
     NOTE: If more than one default is available, the method must be specified
     -bynumber    Git only: assign numbers starting at 0 to use as the version
