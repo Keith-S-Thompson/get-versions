@@ -1,3 +1,8 @@
+Copyright (C) 2012 Keith Thompson
+
+`get-versions` is released under GPL version 2 or later.  See the
+header comments in `get-versions` and the file `COPYING`.
+
 `get-versions` is a command-line utility that will fetch multiple
 versions of a file stored in an
 [RCS](http://www.gnu.org/software/rcs/),
