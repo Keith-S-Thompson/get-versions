@@ -12,4 +12,4 @@ TODO:
 * Recognize more numeric options, up to -9
 
 * For git, specify one or more versions of a file, for example<br>
-  `get-versions foo.c ec5598465cac4d58b57c9587c5a1b1b57358fc7f`
+  `get-versions -byhash foo.c ec5598465cac4d58b57c9587c5a1b1b57358fc7f`
