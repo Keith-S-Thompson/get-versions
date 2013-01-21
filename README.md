@@ -1,4 +1,4 @@
-Copyright (C) 2012 Keith Thompson
+Copyright (C) 2013 Keith Thompson
 
 `get-versions` is released under GPL version 2 or later.  See the
 header comments in `get-versions` and the file `COPYING`.
@@ -137,4 +137,4 @@ Run `get-versions -help` to see a usage message:
              creates the following file:
                 foo__1.7.dat
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Mon 2012-11-12
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Mon 2013-01-21
