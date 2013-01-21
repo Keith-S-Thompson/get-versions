@@ -9,4 +9,7 @@ TODO:
   * -bytimestamp/bydate, -utc, -raw
   * -last n
 
-* Recognize more numeric options, perhaps up to -9
+* Recognize more numeric options, up to -9
+
+* For git, specify one or more versions of a file, for example<br>
+  `get-versions foo.c ec5598465cac4d58b57c9587c5a1b1b57358fc7f`
