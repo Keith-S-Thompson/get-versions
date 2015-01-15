@@ -1,4 +1,4 @@
-Copyright (C) 2013 Keith Thompson
+Copyright (C) 2015 Keith Thompson
 
 `get-versions` is released under GPL version 2 or later.  See the
 header comments in `get-versions` and the file `COPYING`.
@@ -13,7 +13,8 @@ repository. It has a number of options (perhaps too many!) to control
 which versions to fetch, how to name the resulting files, and so forth.
 
 It does not currently support other version control systems.
-I'll consider adding support for other systems in the future.
+I'll consider adding support for other systems in the future,
+particularly Mercurial/hg.
 
 By default, `get-versions` uses a comma to separate the file name from
 the version number.  For example, if you're in a CVS directory tree,
