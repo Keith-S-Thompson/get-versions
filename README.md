@@ -62,7 +62,7 @@ sequential versions, starting at 1, to all the revisions shown by the
 this sequential version number, the (possibly abbreviated) hash,
 and the timestamp.
 
-Some command-line options are specfic to certain version control
+Some command-line options are specific to certain version control
 systems.  This is not always enforced; in some cases, meaningless
 options are treated as errors, and in other cases they're silently
 ignored.
@@ -138,4 +138,4 @@ Run `get-versions -help` to see a usage message:
              creates the following file:
                 foo__1.7.dat
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Mon 2013-01-21
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Thu 2015-01-15
