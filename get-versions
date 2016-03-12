@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2013 Keith Thompson
+# Copyright (C) 2016 Keith Thompson
 
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -617,8 +617,8 @@ Options:
     -rcs         Use RCS (default if there's an RCS directory)
     -cvs         Use CVS (default if there's a CVS directory)
     -svn         Use SVN (default if there's a .svn directory)
-    -git         Use Git (default if there's a .git directory)
-                 in the current directory or any parent)
+    -git         Use Git (default if there's a .git directory
+                          in the current directory or any parent)
     NOTE: If more than one default is available, the method must be specified
     -bynumber    Git only: assign numbers starting at 0 to use as the version
                  This is the default
