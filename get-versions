@@ -303,7 +303,7 @@ foreach my $revision (@Revisions) {
     }
     elsif ($Method eq 'git') {
         my @versions = ();
-        my @command = qw(git log --date=raw);
+        my @command = qw(git log --date=raw --no-decorate);
         push @command, '--follow' if $Opt->{follow};
         push @command, '--', $File_Name;
         if ($Opt->{trace}) {

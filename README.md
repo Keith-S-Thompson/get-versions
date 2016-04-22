@@ -138,4 +138,4 @@ Run `get-versions -help` to see a usage message:
              creates the following file:
                 foo__1.7.dat
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Fri 2016-03-11
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Thu 2016-04-21
