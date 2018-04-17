@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2016 Keith Thompson
+# Copyright (C) 2018 Keith Thompson
 
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ my @Opts = ( $Opt, qw( debugging!
                        byhash!
                        hash-length=i
                        hash8!
+                       hash11!
                        follow!
                        last=i
                        delimiter=s
@@ -49,6 +50,7 @@ my @Opts = ( $Opt, qw( debugging!
                        padding=i
                        2!
                        3!
+                       4!
                        mtime!
                        trace!
                        quiet!
@@ -61,6 +63,9 @@ if ($Opt->{2} and not defined $Opt->{padding}) {
 if ($Opt->{3} and not defined $Opt->{padding}) {
     $Opt->{padding} = 3;
 }
+if ($Opt->{4} and not defined $Opt->{padding}) {
+    $Opt->{padding} = 4;
+}
 if (defined $Opt->{padding} and $Opt->{padding} < 0) {
     Usage("Padding value must be non-negative\n");
 }
@@ -71,12 +76,12 @@ if ($Opt->{windows}) {
     $Opt->{delimiter} = '__';
     $Opt->{infix} = 1;
 }
-if ($Opt->{hash8}) {
+if ($Opt->{hash8} or $Opt->{hash11}) {
     $Opt->{padding} = 3;
     $Opt->{bynumber} = 1;
     $Opt->{bytimestamp} = 0;
     $Opt->{byhash} = 1;
-    $Opt->{'hash-length'} = 8;
+    $Opt->{'hash-length'} = $Opt->{hash11} ? 11 : 8;
 }
 
 if (defined $Opt->{last} and $Opt->{last} <= 0) {
@@ -632,6 +637,7 @@ Options:
                  like very long file names.
     -hash-length n  With "-byhash", use only the first n characters of the hash
     -hash8       Equivalent to -padding 3 -bynumber -byhash -hash-length 8
+    -hash11      Equivalent to -padding 3 -bynumber -byhash -hash-length 11
     -follow      Git only: Pass "--follow" option to "git log".
                  This doesn't currently work.
     -last n      Get only last n versions (git only for now)
@@ -641,8 +647,7 @@ Options:
     -windows     Use options appropriate for Windows:
                      -infix -delimiter __ 
     -padding n   Pad last field of revision to n digits; default is 0.
-    -2           Equivalent to "-padding 2"
-    -3           Equivalent to "-padding 3"
+    -2, -3, -4   Equivalent to "-padding 2", etc.
     -mtime       Set modification time of file to the date of the
                  retrieved revision.  Currently supported only for RCS.
                  Default is true for RCS, false for CVS.

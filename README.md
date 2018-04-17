@@ -1,4 +1,4 @@
-Copyright (C) 2016 Keith Thompson
+Copyright (C) 2018 Keith Thompson
 
 `get-versions` is released under GPL version 2 or later.  See the
 header comments in `get-versions` and the file `COPYING`.
@@ -97,6 +97,7 @@ Run `get-versions -help` to see a usage message:
                      like very long file names.
         -hash-length n  With "-byhash", use only the first n characters of the hash
         -hash8       Equivalent to -padding 3 -bynumber -byhash -hash-length 8
+        -hash11      Equivalent to -padding 3 -bynumber -byhash -hash-length 11
         -follow      Git only: Pass "--follow" option to "git log".
                      This doesn't currently work.
         -last n      Get only last n versions (git only for now)
@@ -106,8 +107,7 @@ Run `get-versions -help` to see a usage message:
         -windows     Use options appropriate for Windows:
                          -infix -delimiter __ 
         -padding n   Pad last field of revision to n digits; default is 0.
-        -2           Equivalent to "-padding 2"
-        -3           Equivalent to "-padding 3"
+        -2, -3, -4   Equivalent to "-padding 2", etc.
         -mtime       Set modification time of file to the date of the
                      retrieved revision.  Currently supported only for RCS.
                      Default is true for RCS, false for CVS.
@@ -118,7 +118,7 @@ Run `get-versions -help` to see a usage message:
     or symbolic), a range of numeric revisions separated by a '-' or '..', or
     a numeric revision followed by a '-' or '..' (indicating a range from the
     specified revision to the head (latest) revision).
-    
+
     RCS and CVS revisions are sequences of decimal integers separated by
     '.', for example "1.42".  In the absence of branches, "1.1-" denotes
     the complete history.
@@ -126,7 +126,7 @@ Run `get-versions -help` to see a usage message:
     a particular file are skipped. "1-" denotes the complete history.
     Git revisions are 40-digit hexadecimal SHA-1 hashes.  This program
     can use hashes, dates, or small integers to denote versions.
-    
+
     Example: get-versions -2 .bashrc 1.5-1.7 1.10          # CVS
              get-versions -2 .bashrc 1.5..1.7 1.10
              creates the following files in the current directory:
@@ -138,4 +138,4 @@ Run `get-versions -help` to see a usage message:
              creates the following file:
                 foo__1.7.dat
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Thu 2016-04-21
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Mon 2018-04-16
