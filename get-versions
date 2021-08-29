@@ -35,6 +35,8 @@ my @opts = ( \%opt,
                  cvs!
                  svn!
                  git!
+                 format|fmt=s
+                 format-help|fmt-help!
                  bynumber!
                  bytimestamp|bydate!
                  utc!
@@ -58,6 +60,7 @@ my @opts = ( \%opt,
                  help|usage! ) );
 Getopt::Long::GetOptions @opts or usage();
 usage() if $opt{help};
+format_help() if $opt{'format-help'};
 if ($opt{2} and not defined $opt{padding}) {
     $opt{padding} = 2;
 }
@@ -340,23 +343,29 @@ foreach my $revision (@revisions) {
             splice @versions, 0, scalar @versions - $opt{last};
         }
         foreach my $version (@versions) {
-            my @parts = ();
-            if ($opt{bynumber}) {
-                push @parts, sprintf("%0*d", $opt{padding}, $version->{num});
+            my $target;
+            if (defined $opt{format}) {
+                $target = target_name($file_name, formatted_string($opt{format}, $version));
             }
-            if ($opt{bytimestamp}) {
-                push @parts, time_image($version->{timestamp});
-            }
-            if ($opt{byhash}) {
-                my $hashlen = $opt{'hash-length'};
-                if (not defined $hashlen or $hashlen == 0) {
-                    push @parts, $version->{commit};
+            else {
+                my @parts = ();
+                if ($opt{bynumber}) {
+                    push @parts, sprintf("%0*d", $opt{padding}, $version->{num});
                 }
-                else {
-                    push @parts, substr($version->{commit}, 0, $hashlen);
+                if ($opt{bytimestamp}) {
+                    push @parts, time_image($version->{timestamp});
                 }
+                if ($opt{byhash}) {
+                    my $hashlen = $opt{'hash-length'};
+                    if (not defined $hashlen or $hashlen == 0) {
+                        push @parts, $version->{commit};
+                    }
+                    else {
+                        push @parts, substr($version->{commit}, 0, $hashlen);
+                    }
+                }
+                $target = target_name($file_name, join('-', @parts));
             }
-            my $target = target_name($file_name, join('-', @parts));
             my $command = "git show '$version->{commit}:./$file_name' > '$target'";
             if ($opt{trace}) {
                 print "% $command\n";
@@ -590,6 +599,35 @@ sub time_image {
     }
 }
 
+sub format_n {
+    my($width, $num) = @_;
+    $width = 0 if $width eq '';
+    return sprintf "%0${width}d", $num;
+}
+
+sub format_h {
+    my($width, $hash) = @_;
+    if ($width eq '') {
+        return $hash;
+    }
+    else {
+        return substr($hash, 0, $width);
+    }
+}
+
+sub formatted_string {
+    # $version->{timestamp} (seconds since 1970)
+    # $version->{num}       (small integer)
+    # $version->{commit}    (hash)
+    my ($format, $version) = @_;
+    my $result = $format;
+    $result =~ s/%([0-9]*)n/format_n($1, $version->{num})/eg;
+    $result =~ s/%rt/$version->{timestamp}/g;
+    $result =~ s/%t/time_image($version->{timestamp})/eg;
+    $result =~ s/%([0-9]*)h/format_h($1, $version->{commit})/eg;
+    return $result;
+}
+
 sub usage {
     print <<"EOF";
 @{_}$program_name: get specified revisions of a file from a version control system
@@ -604,6 +642,10 @@ Options:
     -git         Use Git (default if there's a .git directory
                           in the current directory or any parent)
     NOTE: If more than one default is available, the method must be specified
+    -format ...  Git only: specify a printf-like format; experimental
+    -fmt ...     Same as -format ...
+    -format-help Show documentation for -format option
+    -fmt-help    Same as -format-help
     -bynumber    Git only: assign numbers starting at 0 to use as the version
                  This is the default
                  Affected by "-padding"
@@ -656,6 +698,27 @@ Example: $program_name -2 .bashrc 1.5-1.7 1.10          # CVS
 Example: $program_name -infix -delim __ 1.7 foo.dat
          creates the following file:
             foo__1.7.dat
+EOF
+    exit 1;
+}
+
+sub format_help {
+    print <<"EOF";
+@{_}$program_name -format ...
+The -format option takes a printf-like format string to specify the
+version information to be added to the name of each created file.
+
+%n    expands to an integer sequence number, starting with 1 for the
+      oldest revision.  %3n, for example, pads with leading 0s to
+      3 digits.
+
+%t    expands to a timestamp in the form "YYYY-MM-DD-hhmmss"
+
+%h    expands to the hash.  %8h, for example, expands to the first 8
+      digits of  the hash.
+
+Other characters are unchanged.
+
 EOF
     exit 1;
 }
