@@ -16,3 +16,8 @@ TODO:
   Use `git ls-tree revision filename` to determine this.
 * BUG: For CVS, `get-versions nosuchfile 1.1` creates an empty
   `nosuchfile,1.1` and no error or warning message.
+* Simplify the implementation by re-implementing most options
+  as front ends for the `-format` option.
+* Revamp the `-help` option to show a terser usage message by
+  default, with options to show more complete help including
+  a man page (using `Pod::Usage`).

@@ -30,13 +30,14 @@ chomp $cwd;
 
 my %opt = ( delimiter => ',' );
 my @opts = ( \%opt,
-             qw( debugging!
+             qw( help|h|usage!
+                 debugging!
                  rcs!
                  cvs!
                  svn!
                  git!
                  format|fmt=s
-                 format-help|fmt-help!
+                 format-help|fmt-help|help-format|help-fmt!
                  bynumber!
                  bytimestamp|bydate!
                  utc!
@@ -56,8 +57,7 @@ my @opts = ( \%opt,
                  4!
                  mtime!
                  trace!
-                 quiet!
-                 help|usage! ) );
+                 quiet! ) );
 Getopt::Long::GetOptions @opts or usage();
 usage() if $opt{help};
 format_help() if $opt{'format-help'};
@@ -150,18 +150,18 @@ elsif ($method eq 'svn')   { $cmd = 'svn' }
 elsif ($method eq 'git')   { $cmd = 'git' }
 else                       { die "Internal error, \$method = \"$method\"" }
 
-my $file_name = undef;
+my $filename = undef;
 my @revisions = ();
 
 foreach my $arg (@ARGV) {
-    if (not defined $file_name) {
-        $file_name = $arg;
+    if (not defined $filename) {
+        $filename = $arg;
     }
     else {
-        push @revisions, extract_revisions($arg, $file_name);
+        push @revisions, extract_revisions($arg, $filename);
     }
 }
-usage("Not enough arguments\n") if not defined $file_name;
+usage("Not enough arguments\n") if not defined $filename;
 
 if (scalar @revisions == 0) {
     #
@@ -174,7 +174,7 @@ if (scalar @revisions == 0) {
     push @revisions, undef;
 }
 
-my @extra_args = ("$file_name,v");
+my @extra_args = ("$filename,v");
 
 debug("Looking for $cmd\n");
 {
@@ -214,7 +214,7 @@ foreach my $revision (@revisions) {
     else {
         $revision_string = '_';
     }
-    my $target_file = target_name($file_name, $revision_string);
+    my $target_file = target_name($filename, $revision_string);
 
     if ($method eq 'rcs') {
         my @revision_arg;
@@ -230,7 +230,7 @@ foreach my $revision (@revisions) {
             @revision_arg = ();
         }
 
-        my @command = ('co', @revision_arg, @extra_args, "$tmp_dir/$file_name");
+        my @command = ('co', @revision_arg, @extra_args, "$tmp_dir/$filename");
         if ($opt{trace}) {
             print "% @command\n";
         }
@@ -249,9 +249,9 @@ foreach my $revision (@revisions) {
         }
 
         if ($opt{trace}) {
-            print "% rename $tmp_dir/$file_name, $target_file\n";
+            print "% rename $tmp_dir/$filename, $target_file\n";
         }
-        rename "$tmp_dir/$file_name", $target_file;
+        rename "$tmp_dir/$filename", $target_file;
     }
     elsif ($method eq 'cvs') {
         my @cvs_args = qw(update -p);
@@ -259,7 +259,7 @@ foreach my $revision (@revisions) {
             push @cvs_args, '-r', $revision;
         }
 
-        my @command = ($cmd, @cvs_args, @extra_args, $file_name);
+        my @command = ($cmd, @cvs_args, @extra_args, $filename);
         if ($opt{trace}) {
             print "% @command\n";
         }
@@ -284,10 +284,10 @@ foreach my $revision (@revisions) {
     elsif ($method eq 'svn') {
         my @command = ($cmd, 'cat');
         if (defined $revision) {
-            push @command, "$file_name\@$revision";
+            push @command, "$filename\@$revision";
         }
         else {
-            push @command, $file_name;
+            push @command, $filename;
         }
         if ($opt{trace}) {
             print "% @command\n";
@@ -314,7 +314,7 @@ foreach my $revision (@revisions) {
         my @versions = ();
         my @command = qw(git log --date=raw --no-decorate);
         push @command, '--follow' if $opt{follow};
-        push @command, '--', $file_name;
+        push @command, '--', $filename;
         if ($opt{trace}) {
             print "% @command\n";
         }
@@ -329,7 +329,9 @@ foreach my $revision (@revisions) {
                 $timestamp = $1;
             }
             if (defined $commit and defined $timestamp) {
-                unshift @versions, { commit => $commit, timestamp => $timestamp };
+                unshift @versions, { commit => $commit,
+                                     timestamp => $timestamp,
+                                     filename => $filename };
                 undef $commit;
                 undef $timestamp;
             }
@@ -345,7 +347,7 @@ foreach my $revision (@revisions) {
         foreach my $version (@versions) {
             my $target;
             if (defined $opt{format}) {
-                $target = target_name($file_name, formatted_string($opt{format}, $version));
+                $target = formatted_string($opt{format}, $version);
             }
             else {
                 my @parts = ();
@@ -364,9 +366,9 @@ foreach my $revision (@revisions) {
                         push @parts, substr($version->{commit}, 0, $hashlen);
                     }
                 }
-                $target = target_name($file_name, join('-', @parts));
+                $target = target_name($filename, join('-', @parts));
             }
-            my $command = "git show '$version->{commit}:./$file_name' > '$target'";
+            my $command = "git show '$version->{commit}:./$filename' > '$target'";
             if ($opt{trace}) {
                 print "% $command\n";
             }
@@ -435,7 +437,7 @@ sub extract_revisions {
     }
     elsif ($arg =~ /^([\d.]+)$range_sep$/) {
         $first_rev = $1;
-        $last_rev = head_revision($file_name);
+        $last_rev = head_revision($filename);
         $is_range = 1;
     }
     else {
@@ -575,15 +577,15 @@ sub available_methods {
 }
 
 sub make_read_only {
-    my($file_name) = @_;
-    my @stat = stat $file_name;
+    my($filename) = @_;
+    my @stat = stat $filename;
     if (not @stat) {
-        warn "stat $file_name: $!\n";
+        warn "stat $filename: $!\n";
         return;
     }
     my $perms = $stat[2];
     $perms &= ~0222;
-    chmod $perms, $file_name or warn "chmod $file_name: $!\n";
+    chmod $perms, $filename or warn "chmod $filename: $!\n";
 }
 
 sub time_image {
@@ -615,12 +617,32 @@ sub format_h {
     }
 }
 
+sub prefix {
+    my($filename) = @_;
+    my $result = $filename;
+    $result =~ s/\.[^.]*$//;
+    return $result;
+}
+
+sub suffix {
+    my($filename) = @_;
+    if ($filename =~ /\./) {
+        my $result = $filename;
+        $result =~ s/^.*\.//;
+        return $result;
+    }
+    else {
+        return "";
+    }
+}
+
 sub formatted_string {
     # $version->{timestamp} (seconds since 1970)
-    # $version->{num}       (small integer)
-    # $version->{commit}    (hash)
     my ($format, $version) = @_;
-    my $result = $format;
+    my($result) = $format;
+    $result =~ s/%f/$version->{filename}/g;
+    $result =~ s/%p/prefix($version->{filename})/eg;
+    $result =~ s/%s/suffix($version->{filename})/eg;
     $result =~ s/%([0-9]*)n/format_n($1, $version->{num})/eg;
     $result =~ s/%rt/$version->{timestamp}/g;
     $result =~ s/%t/time_image($version->{timestamp})/eg;
@@ -632,7 +654,7 @@ sub usage {
     print <<"EOF";
 @{_}$program_name: get specified revisions of a file from a version control system
 Currently supported systems are RCS, CVS, SVN, and Git
-usage: $program_name [options] file [revision...]
+Usage: $program_name [options] file [revision...]
 Option names may be abbreviated uniquely
 Options:
     -help, usage Display this message and exit
@@ -644,8 +666,8 @@ Options:
     NOTE: If more than one default is available, the method must be specified
     -format ...  Git only: specify a printf-like format; experimental
     -fmt ...     Same as -format ...
-    -format-help Show documentation for -format option
-    -fmt-help    Same as -format-help
+    -format-help Show documentation for the -format option
+                 Also -fmt-help, -help-format, -help-fmt 
     -bynumber    Git only: assign numbers starting at 0 to use as the version
                  This is the default
                  Affected by "-padding"
@@ -706,19 +728,26 @@ sub format_help {
     print <<"EOF";
 @{_}$program_name -format ...
 The -format option takes a printf-like format string to specify the
-version information to be added to the name of each created file.
+name of the created file.
 
 %n    expands to an integer sequence number, starting with 1 for the
       oldest revision.  %3n, for example, pads with leading 0s to
       3 digits.
-
 %t    expands to a timestamp in the form "YYYY-MM-DD-hhmmss"
-
+%rt   expands to a raw timestamp, integer seconds since 1970
 %h    expands to the hash.  %8h, for example, expands to the first 8
       digits of  the hash.
+%f    expands to the original file name
+%p    expands to the prefix of the original file name, defined as
+      everything up to and not including the last '.' character.
+      If there is no '.'  character, expands to the entire file name.
+%s    expands to the suffix (extension) of the original file name,
+      defined as everything after the last '.' character.  If there
+      is no '.'  character, expands to nothing.
+Other characters (including '%') are passed through unchanged.
 
-Other characters are unchanged.
-
+For example, `get-versions -format '%p__%03n.%s' foo.txt`
+might create `foo__001.txt`, `foo__002.txt`, etc.
 EOF
     exit 1;
 }
