@@ -1,5 +1,8 @@
 TODO:
 
+NOTE: Any items that apply to systems other than Git have a low
+priority.
+
 * Optionally set mtime for systems other than RCS (get info from log).
   Make it optional for RCS (it currently forces -mtime to be set).
 * Support Mercurial/hg.  Use `hg cat filename -r revision`; see
@@ -9,7 +12,7 @@ TODO:
   * -bytimestamp/bydate, -utc, -raw
   * -last n
   * For CVS: -all to get all revisions listed in `cvs log` output
-* Recognize more numeric options, up to -9
+* Recognize more numeric options, up to -9 (largely handled by `-format` option)
 * For git, specify one or more versions of a file, for example  
   `get-versions -byhash foo.c ec5598465cac4d58b57c9587c5a1b1b57358fc7f`
 * For git, make checked out files executable if appropriate.
