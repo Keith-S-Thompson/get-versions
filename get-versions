@@ -80,14 +80,12 @@ if ($opt{windows}) {
     $opt{delimiter} = '__';
     $opt{infix} = 1;
 }
-if ($opt{hash8} or $opt{hash11}) {
-    $opt{padding} = 3;
-    $opt{bynumber} = 1;
-    $opt{bytimestamp} = 0;
-    $opt{byhash} = 1;
-    $opt{'hash-length'} = $opt{hash11} ? 11 : 8;
+if ($opt{hash8}) {
+    $opt{format} = '%f,%3n-%8';
 }
-
+elsif ($opt{hash11}) {
+    $opt{format} = '%f,%3n-%11h';
+}
 if (defined $opt{last} and $opt{last} <= 0) {
     usage("Argument to -last must be positive\n");
 }
@@ -647,6 +645,8 @@ sub formatted_string {
     $result =~ s/%rt/$version->{timestamp}/g;
     $result =~ s/%t/time_image($version->{timestamp})/eg;
     $result =~ s/%([0-9]*)h/format_h($1, $version->{commit})/eg;
+    $result =~ s/%d/opt{delimiter}/g;
+    $result =~ s/%%/%/g;
     return $result;
 }
 
@@ -744,6 +744,9 @@ name of the created file.
 %s    expands to the suffix (extension) of the original file name,
       defined as everything after the last '.' character.  If there
       is no '.'  character, expands to nothing.
+%d    expands to the delimiter; the default ',' can be overridden by
+      the -delimiter option
+%%    expands to a single '%' character
 Other characters (including '%') are passed through unchanged.
 
 For example, `get-versions -format '%p__%03n.%s' foo.txt`
