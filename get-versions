@@ -80,11 +80,14 @@ if ($opt{windows}) {
     $opt{delimiter} = '__';
     $opt{infix} = 1;
 }
-if ($opt{hash8}) {
-    $opt{format} = '%f,%3n-%8';
-}
-elsif ($opt{hash11}) {
-    $opt{format} = '%f,%3n-%11h';
+if ($opt{hash8} or $opt{hash11}) {
+    my $percent_h = $opt{hash11} ? '%11h' : '%8h';
+    if ($opt{infix}) {
+        $opt{format} = "%p%d%3n-$percent_h.%s";
+    }
+    else {
+        $opt{format} = "%f%d%3n-$percent_h";
+    }
 }
 if (defined $opt{last} and $opt{last} <= 0) {
     usage("Argument to -last must be positive\n");
@@ -645,7 +648,7 @@ sub formatted_string {
     $result =~ s/%rt/$version->{timestamp}/g;
     $result =~ s/%t/time_image($version->{timestamp})/eg;
     $result =~ s/%([0-9]*)h/format_h($1, $version->{commit})/eg;
-    $result =~ s/%d/opt{delimiter}/g;
+    $result =~ s/%d/$opt{delimiter}/g;
     $result =~ s/%%/%/g;
     return $result;
 }
