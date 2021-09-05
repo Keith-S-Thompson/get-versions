@@ -81,12 +81,12 @@ if ($opt{windows}) {
     $opt{infix} = 1;
 }
 if ($opt{hash8} or $opt{hash11}) {
-    my $percent_h = $opt{hash11} ? '%11h' : '%8h';
+    my $hash = $opt{hash11} ? '%11h' : '%8h';
     if ($opt{infix}) {
-        $opt{format} = "%p%d%3n-$percent_h.%s";
+        $opt{format} = "%p%d%3n-$hash%s";
     }
     else {
-        $opt{format} = "%f%d%3n-$percent_h";
+        $opt{format} = "%f%d%3n-$hash";
     }
 }
 if (defined $opt{last} and $opt{last} <= 0) {
@@ -620,17 +620,15 @@ sub format_h {
 
 sub prefix {
     my($filename) = @_;
-    my $result = $filename;
-    $result =~ s/\.[^.]*$//;
+    (my $result = $filename) =~ s/\.[^.]*$//;
     return $result;
 }
 
 sub suffix {
     my($filename) = @_;
     if ($filename =~ /\./) {
-        my $result = $filename;
-        $result =~ s/^.*\.//;
-        return $result;
+        (my $result = $filename) =~ s/^.*\.//;
+        return ".$result";
     }
     else {
         return "";
@@ -739,14 +737,16 @@ name of the created file.
 %t    expands to a timestamp in the form "YYYY-MM-DD-hhmmss"
 %rt   expands to a raw timestamp, integer seconds since 1970
 %h    expands to the hash.  %8h, for example, expands to the first 8
-      digits of  the hash.
+      digits of the hash.
 %f    expands to the original file name
 %p    expands to the prefix of the original file name, defined as
       everything up to and not including the last '.' character.
       If there is no '.'  character, expands to the entire file name.
 %s    expands to the suffix (extension) of the original file name,
-      defined as everything after the last '.' character.  If there
-      is no '.'  character, expands to nothing.
+      defined as everything including and after the last '.' character.
+      If there is no '.'  character, expands to nothing.
+      %p does not include the '.'; %s does.
+      %p%s is equivalent to %f.
 %d    expands to the delimiter; the default ',' can be overridden by
       the -delimiter option
 %%    expands to a single '%' character
