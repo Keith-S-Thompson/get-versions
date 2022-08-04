@@ -747,8 +747,8 @@ EOF
 sub format_help {
     print <<"EOF";
 @{_}$program_name -format ...
-The -format option takes a printf-like format string to specify the
-name of the created file.
+The -format (or -fmt) option takes a printf-like format string to
+specify the name of the created file.
 
 %n    expands to an integer sequence number, starting with 1 for the
       oldest revision.  %3n, for example, pads with leading 0s to
