@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2021 Keith Thompson
+# Copyright (C) 2022 Keith Thompson
 
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ chomp $cwd;
 my %opt = ( delimiter => ',' );
 my @opts = ( \%opt,
              qw( help|h|usage!
+                 long-help!
                  debugging!
                  rcs!
                  cvs!
@@ -58,8 +59,9 @@ my @opts = ( \%opt,
                  mtime!
                  trace!
                  quiet! ) );
-Getopt::Long::GetOptions @opts or usage();
-usage() if $opt{help};
+Getopt::Long::GetOptions @opts or short_usage();
+short_usage() if $opt{help};
+long_usage() if $opt{'long-help'};
 format_help() if $opt{'format-help'};
 if ($opt{2} and not defined $opt{padding}) {
     $opt{padding} = 2;
@@ -71,7 +73,7 @@ if ($opt{4} and not defined $opt{padding}) {
     $opt{padding} = 4;
 }
 if (defined $opt{padding} and $opt{padding} < 0) {
-    usage("Padding value must be non-negative\n");
+    short_usage("Padding value must be non-negative\n");
 }
 if (not defined $opt{padding}) {
     $opt{padding} = 0;
@@ -90,14 +92,14 @@ if ($opt{hash8} or $opt{hash11}) {
     }
 }
 if (defined $opt{last} and $opt{last} <= 0) {
-    usage("Argument to -last must be positive\n");
+    short_usage("Argument to -last must be positive\n");
 }
 if (defined $opt{'hash-length'} and $opt{'hash-length'} <= 0) {
-    usage("Argument to -hash-length must be positive\n");
+    short_usage("Argument to -hash-length must be positive\n");
 }
 
 if ($opt{utc} and $opt{raw}) {
-    usage("-utc and -raw options are incompatible");
+    short_usage("-utc and -raw options are incompatible");
 }
 
 # fatal "\$cwd ($cwd) not writable\n" if not -w $cwd;
@@ -113,20 +115,20 @@ if (scalar keys %method_requested == 0) {
     my @avail = available_methods();
     debug(">>> \@avail = (@avail)\n");
     if (scalar @avail == 0) {
-        usage("No methods available\n");
+        short_usage("No methods available\n");
     }
     elsif (scalar @avail == 1) {
         $method = $avail[0];
     }
     else {
-        usage("Multiple methods available: @avail\n");
+        short_usage("Multiple methods available: @avail\n");
     }
 }
 elsif (scalar keys %method_requested == 1) {
     $method = (keys %method_requested)[0];
 }
 else {
-    usage("Specify only one of -rcs, -cvs, -svn, -git\n");
+    short_usage("Specify only one of -rcs, -cvs, -svn, -git\n");
 }
 
 if ($method eq 'rcs') {
@@ -134,7 +136,7 @@ if ($method eq 'rcs') {
 }
 else {
     if ($opt{mtime}) {
-        usage("-mtime option is currently supported only for RCS\n");
+        short_usage("-mtime option is currently supported only for RCS\n");
     }
 }
 
@@ -162,7 +164,7 @@ foreach my $arg (@ARGV) {
         push @revisions, extract_revisions($arg, $filename);
     }
 }
-usage("Not enough arguments\n") if not defined $filename;
+short_usage("Not enough arguments\n") if not defined $filename;
 
 if (scalar @revisions == 0) {
     #
@@ -451,7 +453,7 @@ sub extract_revisions {
             my $rev_pattern = ($method eq 'svn' ? qr/^\d+$/
                                                 : qr/^\d+(\.\d+)*$/);
             if (defined $rev and $rev !~ $rev_pattern) {
-                usage("Invalid revision: $rev\n");
+                short_usage("Invalid revision: $rev\n");
             }
         }
     }
@@ -479,7 +481,7 @@ sub extract_revisions {
         my ($last_head,  $last_tail)  = ($last_rev  =~ /^(.+)\.(\d+)$/);
 
         if ($first_head ne $last_head or $first_tail > $last_tail) {
-            usage("Invalid revision range: $arg\n");
+            short_usage("Invalid revision range: $arg\n");
         }
 
         for (my $i = $first_tail; $i <= $last_tail; $i ++) {
@@ -651,14 +653,33 @@ sub formatted_string {
     return $result;
 }
 
-sub usage {
+sub short_usage {
     print <<"EOF";
-@{_}$program_name: get specified revisions of a file from a version control system
+@{_}$program_name: Get specified revisions of a file from a version control system
 Currently supported systems are RCS, CVS, SVN, and Git
 Usage: $program_name [options] file [revision...]
 Option names may be abbreviated uniquely
 Options:
-    -help, usage Display this message and exit
+    -help, usage Display this short help message and exit
+    -long-help   Display a long help message
+                 Suggest `$program_name -long-help | less`
+    -format-help Show documentation for the -format option
+                 Also -fmt-help, -help-format, -help-fmt 
+EOF
+    exit 1;
+}
+
+sub long_usage {
+    print <<"EOF";
+@{_}$program_name: Get specified revisions of a file from a version control system
+Currently supported systems are RCS, CVS, SVN, and Git
+Usage: $program_name [options] file [revision...]
+Option names may be abbreviated uniquely
+Options:
+    -help, usage Display a short help message and exit
+    -long-help   Display this long help message
+    -format-help Show documentation for the -format option
+                 Also -fmt-help, -help-format, -help-fmt 
     -rcs         Use RCS (default if there's an RCS directory)
     -cvs         Use CVS (default if there's a CVS directory)
     -svn         Use SVN (default if there's a .svn directory)
@@ -667,8 +688,6 @@ Options:
     NOTE: If more than one default is available, the method must be specified
     -format ...  Git only: specify a printf-like format; experimental
     -fmt ...     Same as -format ...
-    -format-help Show documentation for the -format option
-                 Also -fmt-help, -help-format, -help-fmt 
     -bynumber    Git only: assign numbers starting at 0 to use as the version
                  This is the default
                  Affected by "-padding"

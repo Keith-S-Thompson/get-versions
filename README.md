@@ -72,14 +72,31 @@ I've been developing this tool for my own personal use since 1991.
 I might later add the full revision history to this GitHub project; for
 now, I'm just adding the current version and developing it from there.
 
-Run `get-versions -help` to see a usage message:
+Run `get-versions -help` to see a short usage message:
 ```
-get-versions: get specified revisions of a file from a version control system
+get-versions: Get specified revisions of a file from a version control system
 Currently supported systems are RCS, CVS, SVN, and Git
 Usage: get-versions [options] file [revision...]
 Option names may be abbreviated uniquely
 Options:
-    -help, usage Display this message and exit
+    -help, usage Display this short help message and exit
+    -long-help   Display a long help message
+                 Suggest `get-versions -long-help | less`
+    -format-help Show documentation for the -format option
+                 Also -fmt-help, -help-format, -help-fmt 
+```
+
+Run `get-versions -long-help` to see a longer usage message:
+```
+get-versions: Get specified revisions of a file from a version control system
+Currently supported systems are RCS, CVS, SVN, and Git
+Usage: get-versions [options] file [revision...]
+Option names may be abbreviated uniquely
+Options:
+    -help, usage Display a short help message and exit
+    -long-help   Display this long help message
+    -format-help Show documentation for the -format option
+                 Also -fmt-help, -help-format, -help-fmt 
     -rcs         Use RCS (default if there's an RCS directory)
     -cvs         Use CVS (default if there's a CVS directory)
     -svn         Use SVN (default if there's a .svn directory)
@@ -88,8 +105,6 @@ Options:
     NOTE: If more than one default is available, the method must be specified
     -format ...  Git only: specify a printf-like format; experimental
     -fmt ...     Same as -format ...
-    -format-help Show documentation for the -format option
-                 Also -fmt-help, -help-format, -help-fmt 
     -bynumber    Git only: assign numbers starting at 0 to use as the version
                  This is the default
                  Affected by "-padding"
@@ -144,4 +159,35 @@ Example: get-versions -infix -delim __ 1.7 foo.dat
             foo__1.7.dat
 ```
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Sun 2021-08-29
+Run `get-versions -format-help` for documentation on the `-format` option:
+```
+get-versions -format ...
+The -format option takes a printf-like format string to specify the
+name of the created file.
+
+%n    expands to an integer sequence number, starting with 1 for the
+      oldest revision.  %3n, for example, pads with leading 0s to
+      3 digits.
+%t    expands to a timestamp in the form "YYYY-MM-DD-hhmmss"
+%rt   expands to a raw timestamp, integer seconds since 1970
+%h    expands to the hash.  %8h, for example, expands to the first 8
+      digits of the hash.
+%f    expands to the original file name
+%p    expands to the prefix of the original file name, defined as
+      everything up to and not including the last '.' character.
+      If there is no '.'  character, expands to the entire file name.
+%s    expands to the suffix (extension) of the original file name,
+      defined as everything including and after the last '.' character.
+      If there is no '.'  character, expands to nothing.
+      %p does not include the '.'; %s does.
+      %p%s is equivalent to %f.
+%d    expands to the delimiter; the default ',' can be overridden by
+      the -delimiter option
+%%    expands to a single '%' character
+Other characters (including '%') are passed through unchanged.
+
+For example, `get-versions -format '%p__%03n.%s' foo.txt`
+might create `foo__001.txt`, `foo__002.txt`, etc.
+```
+
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Thu 2022-08-04

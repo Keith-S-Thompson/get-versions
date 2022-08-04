@@ -15,6 +15,10 @@ priority.
 * Recognize more numeric options, up to -9 (largely handled by `-format` option)
 * For git, specify one or more versions of a file, for example  
   `get-versions -byhash foo.c ec5598465cac4d58b57c9587c5a1b1b57358fc7f`
+* For git, specify a range of versions, for example
+  `get-versions -byhash foo.c commit1..commit2`  
+  For `git log`, this range does not include `commit1` but does include `commit2`.
+  I think I want to include both.
 * For git, make checked out files executable if appropriate.
   Use `git ls-tree revision filename` to determine this.
 * BUG: For CVS, `get-versions nosuchfile 1.1` creates an empty
@@ -23,4 +27,7 @@ priority.
   as front ends for the `-format` option.
 * Revamp the `-help` option to show a terser usage message by
   default, with options to show more complete help including
-  a man page (using `Pod::Usage`).
+  a man page (using `Pod::Usage`).  
+  Partially done.  I now have `-help` showing a short usage message,
+  and `-long-help` showing the full usage message (plus `format-help`
+  for the `-format` option).  Still TODO: Use `Pod::Usage`.
