@@ -162,16 +162,18 @@ Example: get-versions -infix -delim __ 1.7 foo.dat
 Run `get-versions -format-help` for documentation on the `-format` option:
 ```
 get-versions -format ...
-The -format option takes a printf-like format string to specify the
-name of the created file.
+The -format (or -fmt) option takes a printf-like format string to
+specify the name of the created file.
 
 %n    expands to an integer sequence number, starting with 1 for the
       oldest revision.  %3n, for example, pads with leading 0s to
       3 digits.
 %t    expands to a timestamp in the form "YYYY-MM-DD-hhmmss"
+      A number specifies the number of fields, 1..6.
+      For example %3t yields "YYYY-MM-DD"; %5t yields "YYYY-MM-DD-hhmm".
 %rt   expands to a raw timestamp, integer seconds since 1970
 %h    expands to the hash.  %8h, for example, expands to the first 8
-      digits of the hash.
+      digits of the hash.  %h gives the full 40-character hash.
 %f    expands to the original file name
 %p    expands to the prefix of the original file name, defined as
       everything up to and not including the last '.' character.

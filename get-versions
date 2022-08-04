@@ -592,15 +592,18 @@ sub make_read_only {
 }
 
 sub time_image {
-    my($time) = @_;
+    my($time, $num) = @_;
+    $num = 6 if not defined $num or $num eq '' or $num !~ /^\d+$/ or $num < 1 or $num > 6;
     if ($opt{raw}) {
         return $time;
     }
     else {
         my($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst)
             = ($opt{utc} ? gmtime $time : localtime $time);
-        return sprintf "%04d-%02d-%02d-%02d%02d%02d",
-                       1900+$year, 1+$mon, $mday, $hour, $min, $sec;
+        my $result = sprintf "%04d-%02d-%02d-%02d%02d%02d",
+                     1900+$year, 1+$mon, $mday, $hour, $min, $sec;
+        my @map = ( 17, 4, 7, 10, 13, 15, 17 );
+        return substr($result, 0, $map[$num]);
     }
 }
 
@@ -646,7 +649,7 @@ sub formatted_string {
     $result =~ s/%s/suffix($version->{filename})/eg;
     $result =~ s/%([0-9]*)n/format_n($1, $version->{num})/eg;
     $result =~ s/%rt/$version->{timestamp}/g;
-    $result =~ s/%t/time_image($version->{timestamp})/eg;
+    $result =~ s/%([0-9]*)t/time_image($version->{timestamp}, $1)/eg;
     $result =~ s/%([0-9]*)h/format_h($1, $version->{commit})/eg;
     $result =~ s/%d/$opt{delimiter}/g;
     $result =~ s/%%/%/g;
@@ -754,9 +757,11 @@ specify the name of the created file.
       oldest revision.  %3n, for example, pads with leading 0s to
       3 digits.
 %t    expands to a timestamp in the form "YYYY-MM-DD-hhmmss"
+      A number specifies the number of fields, 1..6.
+      For example %3t yields "YYYY-MM-DD"; %5t yields "YYYY-MM-DD-hhmm".
 %rt   expands to a raw timestamp, integer seconds since 1970
 %h    expands to the hash.  %8h, for example, expands to the first 8
-      digits of the hash.
+      digits of the hash.  %h gives the full 40-character hash.
 %f    expands to the original file name
 %p    expands to the prefix of the original file name, defined as
       everything up to and not including the last '.' character.
