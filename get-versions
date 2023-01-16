@@ -61,23 +61,17 @@ my @opts = ( \%opt,
                  quiet! ) );
 Getopt::Long::GetOptions @opts or short_usage();
 short_usage() if $opt{help};
-long_usage() if $opt{'long-help'};
+long_usage()  if $opt{'long-help'};
 format_help() if $opt{'format-help'};
-if ($opt{2} and not defined $opt{padding}) {
-    $opt{padding} = 2;
+if (defined $opt{padding}) {
+    if ($opt{padding} < 0) {
+        short_usage("Padding value must be non-negative\n");
+    }
 }
-if ($opt{3} and not defined $opt{padding}) {
-    $opt{padding} = 3;
-}
-if ($opt{4} and not defined $opt{padding}) {
-    $opt{padding} = 4;
-}
-if (defined $opt{padding} and $opt{padding} < 0) {
-    short_usage("Padding value must be non-negative\n");
-}
-if (not defined $opt{padding}) {
-    $opt{padding} = 0;
-}
+elsif ($opt{4}) { $opt{padding} = 4; }
+elsif ($opt{3}) { $opt{padding} = 3; }
+elsif ($opt{2}) { $opt{padding} = 2; }
+else            { $opt{padding} = 0; }
 if ($opt{windows}) {
     $opt{delimiter} = '__';
     $opt{infix} = 1;
