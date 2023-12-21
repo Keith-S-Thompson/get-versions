@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2022 Keith Thompson
+# Copyright (C) 2023 Keith Thompson
 
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -79,10 +79,10 @@ if ($opt{windows}) {
 if ($opt{hash8} or $opt{hash11}) {
     my $hash = $opt{hash11} ? '%11h' : '%8h';
     if ($opt{infix}) {
-        $opt{format} = "%p%d%3n-$hash%s";
+        $opt{format} = "%p%d%3n-%t-$hash%s";
     }
     else {
-        $opt{format} = "%f%d%3n-$hash";
+        $opt{format} = "%f%d%3n-%t-$hash";
     }
 }
 if (defined $opt{last} and $opt{last} <= 0) {
@@ -696,8 +696,8 @@ Options:
                  More than one of the -by* options can be given if you
                  like very long file names.
     -hash-length n  With "-byhash", use only the first n characters of the hash
-    -hash8       Equivalent to -padding 3 -bynumber -byhash -hash-length 8
-    -hash11      Equivalent to -padding 3 -bynumber -byhash -hash-length 11
+    -hash8       Equivalent to -padding 3 -bynumber -byhash -hash-length 8 -bydate
+    -hash11      Equivalent to -padding 3 -bynumber -byhash -hash-length 11 -bydate
     -follow      Git only: Pass "--follow" option to "git log".
                  This doesn't currently work.
     -last n      Get only last n versions (git only for now)
