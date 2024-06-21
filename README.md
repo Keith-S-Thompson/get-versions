@@ -1,4 +1,4 @@
-Copyright (C) 2023 Keith Thompson
+Copyright © 2024 Keith Thompson
 
 `get-versions` is released under GPL version 2 or later.  See the
 header comments in `get-versions` and the file `COPYING`.
@@ -21,32 +21,48 @@ By default, `get-versions` uses a comma to separate the file name from
 the version number.  For example, if you're in a CVS directory tree,
 this command:
 
-    get-versions foo.txt 1.3-1.5
+Note that the `gpm` (General Purpose Mouse interface) package provides
+a `/usr/bin/get-versions` command which might conflict with this,
+depending on how your `$PATH` is configured.
+
+```
+get-versions foo.txt 1.3-1.5
+```
 
 or
 
-    get-versions foo.txt 1.3..1.5
+```
+get-versions foo.txt 1.3..1.5
+```
 
 will create the following files
 
-    foo.txt,1.3
-    foo.txt,1.4
-    foo.txt,1.5
+```
+foo.txt,1.3
+foo.txt,1.4
+foo.txt,1.5
+```
 
 That's not very friendly for Windows systems, which depend on the
 file extension to identify file types, so this command:
 
-    get-versions -windows foo.txt 1.3-1.5
+```
+get-versions -windows foo.txt 1.3-1.5
+```
 
-or, equivalently, 
+or, equivalently,
 
-    get-versions -infix -delimiter __ foo.txt 1.3-1.5
+```
+get-versions -infix -delimiter __ foo.txt 1.3-1.5
+```
 
 will create the following files:
 
-    foo__1.3.txt
-    foo__1.4.txt
-    foo__1.5.txt
+```
+foo__1.3.txt
+foo__1.4.txt
+foo__1.5.txt
+```
 
 maintaining the `.txt` suffix and avoiding the use of the comma
 delimiter.
@@ -73,6 +89,7 @@ I might later add the full revision history to this GitHub project; for
 now, I'm just adding the current version and developing it from there.
 
 Run `get-versions -help` to see a short usage message:
+
 ```
 get-versions: Get specified revisions of a file from a version control system
 Currently supported systems are RCS, CVS, SVN, and Git
@@ -83,10 +100,11 @@ Options:
     -long-help   Display a long help message
                  Suggest `get-versions -long-help | less`
     -format-help Show documentation for the -format option
-                 Also -fmt-help, -help-format, -help-fmt 
+                 Also -fmt-help, -help-format, -help-fmt
 ```
 
 Run `get-versions -long-help` to see a longer usage message:
+
 ```
 get-versions: Get specified revisions of a file from a version control system
 Currently supported systems are RCS, CVS, SVN, and Git
@@ -97,10 +115,11 @@ Options:
     -long-help   Display a long help message
                  Suggest `get-versions -long-help | less`
     -format-help Show documentation for the -format option
-                 Also -fmt-help, -help-format, -help-fmt 
+                 Also -fmt-help, -help-format, -help-fmt
 ```
 
 Run `get-versions -format-help` for documentation on the `-format` option:
+
 ```
 get-versions -format ...
 The -format (or -fmt) option takes a printf-like format string to

@@ -15,7 +15,7 @@ priority.
 * Recognize more numeric options, up to -9 (largely handled by `-format` option)
 * For git, specify one or more versions of a file, for example  
   `get-versions -byhash foo.c ec5598465cac4d58b57c9587c5a1b1b57358fc7f`
-* For git, specify a range of versions, for example
+* For git, specify a range of versions, for example  
   `get-versions -byhash foo.c commit1..commit2`  
   For `git log`, this range does not include `commit1` but does include `commit2`.
   I think I want to include both.
