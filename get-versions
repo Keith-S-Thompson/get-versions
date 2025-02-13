@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2024 Keith Thompson
+# Copyright (C) 2025 Keith Thompson
 
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@ my @opts = ( \%opt,
                  hash8!
                  hash11!
                  follow!
+                 first=i
                  last=i
                  delimiter=s
                  infix!
@@ -87,6 +88,12 @@ if ($opt{hash8} or $opt{hash11}) {
 }
 if (defined $opt{last} and $opt{last} <= 0) {
     short_usage("Argument to -last must be positive\n");
+}
+if (defined $opt{first} and $opt{first} <= 0) {
+    short_usage("Argument to -first must be positive\n");
+}
+if (defined $opt{first} and defined $opt{last}) {
+    short_usage("-first and -last cannot be used together\n");
 }
 if (defined $opt{'hash-length'} and $opt{'hash-length'} <= 0) {
     short_usage("Argument to -hash-length must be positive\n");
@@ -340,6 +347,9 @@ foreach my $revision (@revisions) {
         }
         if (defined $opt{last} and $opt{last} < scalar @versions) {
             splice @versions, 0, scalar @versions - $opt{last};
+        }
+        elsif (defined $opt{first} and $opt{first} < scalar @versions) {
+            splice @versions, $opt{first};
         }
         foreach my $version (@versions) {
             my $target;
@@ -701,6 +711,7 @@ Options:
     -follow      Git only: Pass "--follow" option to "git log".
                  This doesn't currently work.
     -last n      Get only last n versions (git only for now)
+    -first n     Get only oldest n versions (git only for now)
     -delimiter s Use the specified delimiter; default is ","
     -infix       Place the version number before the file suffix,
                  e.g., "foo,1.23.jpg" rather than "foo.jpg,1.23".

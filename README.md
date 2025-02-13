@@ -1,4 +1,4 @@
-Copyright © 2024 Keith Thompson
+Copyright © 2025 Keith Thompson
 
 `get-versions` is released under GPL version 2 or later.  See the
 header comments in `get-versions` and the file `COPYING`.
@@ -152,4 +152,4 @@ For example, `get-versions -format '%p__%03n.%s' foo.txt`
 might create `foo__001.txt`, `foo__002.txt`, etc.
 ```
 
--- Keith Thompson <Keith.S.Thompson@gmail.com> Wed 2023-12-20
+-- Keith Thompson <Keith.S.Thompson@gmail.com> Wed 2025-02-12
